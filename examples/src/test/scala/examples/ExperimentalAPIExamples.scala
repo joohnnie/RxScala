@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package rx.lang.scala.examples
+package examples
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -23,7 +23,6 @@ import org.junit.Test
 
 import rx.lang.scala._
 import rx.lang.scala.schedulers._
-import rx.lang.scala.ExperimentalAPIs._
 
 @Ignore
 object ExperimentalAPIExamples {
@@ -38,26 +37,6 @@ object ExperimentalAPIExamples {
       },
       e => e.printStackTrace()
     )
-  }
-
-  @Test def onBackpressureBlockExample(): Unit = {
-    Observable[Int](subscriber => {
-      (1 to 200).foreach(subscriber.onNext)
-    }).doOnNext(v => println(s"emit $v")).onBackpressureBlock.observeOn(IOScheduler()).subscribe {
-      v =>
-        Thread.sleep(10) // A slow consumer
-        println(s"process $v")
-    }
-  }
-
-  @Test def onBackpressureBlockExample2(): Unit = {
-    Observable[Int](subscriber => {
-      (1 to 200).foreach(subscriber.onNext)
-    }).doOnNext(v => println(s"emit $v")).onBackpressureBlock(10).observeOn(IOScheduler()).subscribe {
-      v =>
-        Thread.sleep(10) // A slow consumer
-        println(s"process $v")
-    }
   }
 
   @Test def doOnRequestExample(): Unit = {
@@ -75,7 +54,7 @@ object ExperimentalAPIExamples {
   @Test def onBackpressureBufferWithCapacityExample(): Unit = {
     Observable[Int](subscriber => {
       (1 to 200).foreach(subscriber.onNext)
-    }).onBackpressureBufferWithCapacity(200).observeOn(IOScheduler()).subscribe {
+    }).onBackpressureBuffer(200).observeOn(IOScheduler()).subscribe {
       v =>
         Thread.sleep(10) // A slow consumer
         println(s"process $v")
@@ -85,7 +64,7 @@ object ExperimentalAPIExamples {
   @Test def onBackpressureBufferWithCapacityExample2(): Unit = {
     Observable[Int](subscriber => {
       (1 to 200).foreach(subscriber.onNext)
-    }).onBackpressureBufferWithCapacity(10, println("Overflow")).observeOn(IOScheduler()).subscribe(
+    }).onBackpressureBuffer(10, println("Overflow")).observeOn(IOScheduler()).subscribe(
       v => {
         Thread.sleep(10)
         // A slow consumer
@@ -113,7 +92,7 @@ object ExperimentalAPIExamples {
 
   @Test def withLatestFromExample2(): Unit = {
     val a = Observable.interval(1 second).take(7)
-    val b = Observable.timer(3 seconds, 250 millis)
+    val b = Observable.interval(3 seconds, 250 millis)
     a.withLatestFrom(b)((x, y) => (x, y)).toBlocking.foreach {
       case (x, y) => println(s"a: $x b: $y")
     }
@@ -129,18 +108,41 @@ object ExperimentalAPIExamples {
   @Test def flatMapWithMaxConcurrentExample(): Unit = {
     (1 to 1000000).toObservable
       .doOnNext(v => println(s"Emitted Value: $v"))
-      .flatMapWithMaxConcurrent((v: Int) => Observable.just(v).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler()), 10)
+      .flatMap(maxConcurrent = 10, v => Observable.just(v).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler()))
       .toBlocking.foreach(v => System.out.println("Received: " + v))
   }
 
   @Test def flatMapWithMaxConcurrentExample2(): Unit = {
     (1 to 1000000).toObservable
       .doOnNext(v => println(s"Emitted Value: $v"))
-      .flatMapWithMaxConcurrent(
-        (v: Int) => Observable.just(v).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler()),
+      .flatMap(
+        maxConcurrent = 10,
+        v => Observable.just(v).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler()),
         e => Observable.just(-1).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler()),
-        () => Observable.just(Int.MaxValue).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler()),
-        10)
+        () => Observable.just(Int.MaxValue).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler())
+      )
       .toBlocking.foreach(v => System.out.println("Received: " + v))
+  }
+
+  @Test def flatMapWithMaxConcurrentExample3() {
+    (1 to 1000000).toObservable
+      .doOnNext(v => println(s"Emitted Value: $v"))
+      .flatMapWith(
+        maxConcurrent = 10,
+        v => Observable.just(v).doOnNext(_ => Thread.sleep(1)).subscribeOn(IOScheduler())
+      )(_ * _).subscribeOn(IOScheduler())
+      .toBlocking.foreach(v => System.out.println("Received: " + v))
+  }
+
+  @Test def onBackpressureDropDoExample(): Unit = {
+    Observable[Int](subscriber => {
+      (1 to 200).foreach(subscriber.onNext)
+    }).onBackpressureDrop {
+      t => println(s"Dropping $t")
+    }.observeOn(IOScheduler()).subscribe {
+      v =>
+        Thread.sleep(10) // A slow consumer
+        println(s"process $v")
+    }
   }
 }

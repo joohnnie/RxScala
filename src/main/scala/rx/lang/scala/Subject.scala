@@ -15,10 +15,17 @@
  */
 package rx.lang.scala
 
+import rx.annotations.Experimental
 import rx.lang.scala.subjects.SerializedSubject
 
 /**
 * A Subject is an Observable and an Observer at the same time.
+ *
+ * @define experimental
+ * <span class="badge badge-red" style="float: right;">EXPERIMENTAL</span>
+ *
+ * @define beta
+ * <span class="badge badge-red" style="float: right;">BETA</span>
 */
 trait Subject[T] extends Observable[T] with Observer[T] {
   private [scala] val asJavaSubject: rx.subjects.Subject[_ >: T, _<: T]
@@ -34,7 +41,7 @@ trait Subject[T] extends Observable[T] with Observer[T] {
    * Indicates whether the [[Subject]] has [[Observer]]s subscribed to it.
    * @return `true` if there is at least one [[Observer]] subscribed to this [[Subject]], `false` otherwise
    */
-  def hasObservers: Boolean = asJavaSubject.hasObservers()
+  def hasObservers: Boolean = asJavaSubject.hasObservers
 
   /**
    * Wraps a [[Subject]] so that it is safe to call its various `on` methods from different threads.

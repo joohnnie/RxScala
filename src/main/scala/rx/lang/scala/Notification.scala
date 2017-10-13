@@ -63,6 +63,16 @@ sealed trait Notification[+T] {
   }
 
   def apply(observer: Observer[T]): Unit = accept(observer)
+
+  def map[U](f: T => U): Notification[U] = flatMap(t => Notification.OnNext(f(t)))
+
+  def flatMap[U](f: T => Notification[U]): Notification[U] = {
+    this match {
+      case Notification.OnNext(value) => f(value)
+      case Notification.OnError(error) => Notification.OnError(error)
+      case Notification.OnCompleted => Notification.OnCompleted
+    }
+  }
 }
 
 /**
@@ -71,9 +81,9 @@ sealed trait Notification[+T] {
  * Example:
  * {{{
  * import Notification._
- * Observable(1, 2, 3).materialize.subscribe(n => n match {
+ * Observable.just(1, 2, 3).materialize.subscribe(n => n match {
  *   case OnNext(v)     => println("Got value " + v)
- *   case OnCompleted() => println("Completed")
+ *   case OnCompleted => println("Completed")
  *   case OnError(err)  => println("Error: " + err.getMessage)
  * })
  * }}}

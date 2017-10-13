@@ -94,7 +94,7 @@ class ObservableTests extends JUnitSuite {
     val msg = "msg6251"
     var receivedMsg = "none"
     try {
-      Observable.error[Int](new Exception(msg)).firstOrElse(10).toBlocking.single
+      Observable.error(new Exception(msg)).firstOrElse(10).toBlocking.single
     } catch {
       case e: Exception => receivedMsg = e.getCause().getMessage()
     }
@@ -253,22 +253,6 @@ class ObservableTests extends JUnitSuite {
     // r should be the same instance created by the `multiMapFactory`
     assertTrue(m eq r)
     assertEquals(expected, r)
-  }
-
-  @Test
-  def testCreate() {
-    var called = false
-    val o = Observable.create[String](observer => {
-      observer.onNext("a")
-      observer.onNext("b")
-      observer.onNext("c")
-      observer.onCompleted()
-      Subscription {
-        called = true
-      }
-    })
-    assertEquals(List("a", "b", "c"), o.toBlocking.toList)
-    assertTrue(called)
   }
 
   @Test
